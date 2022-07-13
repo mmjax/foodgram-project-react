@@ -12,6 +12,12 @@ class Ingredient(models.Model):
         max_length=200,
     )
 
+    def __str__(self):
+        return(
+            f'name: {self.name}, '
+            f'measurement unit: {self.measurement_unit}'
+        )
+
 class Tag(models.Model):
     name = models.CharField(
         max_length=200,
@@ -92,6 +98,9 @@ class IngredientRecipe(models.Model):
         default=1,
         validators=[MinValueValidator(1)],
     )
+
+    def __str__(self):
+        return f'{self.ingredient} {self.recipe} {self.amount}'
 
 
 class TagRecipe(models.Model):

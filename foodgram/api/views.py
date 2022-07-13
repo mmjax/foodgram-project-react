@@ -10,10 +10,12 @@ from recipes.models import *
 from users.models import User
 from .serializers import *
 
- 
+
 ALREADY_SIGNED = {'errors': 'Вы уже подписаны на этого автора'}
+ALREADY_FAVORITE = {'errors': 'Этот рецепт уже добавлен в избранное'}
 CANT_SUBSCRIBE_TO_YOURSELF = {'errors': 'Вы не можете подписаться на самого себя'}
 WASNT_SIGNED = {'errors': 'Вы не были подписаны на этого атора'}
+WASNT_FAVORITE = {'errors': 'Этот рецепт не был добавлен в избранное'}
 
 
 class CreateUserViewSet(UserViewSet):
@@ -68,3 +70,29 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             user__id=request.user.id, following__id=self.kwargs['users_id']
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FavoriteViewSet(viewsets.ModelViewSet):
+    serializer_class = FavoriteSerializer
+    queryset = Favorite.objects.all()
+    model = Favorite
+
+    def create(self, request, *args, **kwargs):
+        recipe_id = self.kwargs['recipes_id']
+        if Favorite.objects.filter(user=request.user.id, recipe__id=recipe_id).exists():
+            return Response(ALREADY_FAVORITE, status=status.HTTP_400_BAD_REQUEST)
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        self.model.objects.create(
+            user=request.user, recipe=recipe)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, request, *args, **kwargs):
+        recipe_id = int(self.kwargs['recipes_id'])
+        if not Favorite.objects.filter(user=request.user, recipe__id=recipe_id).exists():
+            return Response(WASNT_FAVORITE, status=status.HTTP_404_NOT_FOUND)
+        user_id = request.user.id
+        object = get_object_or_404(
+            self.model, user__id=user_id, recipe__id=recipe_id)
+        object.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    

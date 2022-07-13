@@ -2,6 +2,7 @@ from django.contrib.auth.hashers import make_password
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import SerializerMethodField
 from rest_framework import serializers
+from drf_extra_fields.fields import Base64ImageField
 
 from recipes.models import (Cart, Favorite, Ingredient, IngredientRecipe,
                             Recipe, Subscribe, Tag, TagRecipe)
@@ -50,7 +51,23 @@ class IngredientsSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit',)
 
 
+class IngredientInRecipeSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='ingredient.id')
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit',
+    )
+
+    class Meta:
+        model = IngredientRecipe
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
 class RecipeSerializer(serializers.ModelSerializer):
+    ingredients = IngredientInRecipeSerializer(
+        many=True,
+        source='ingredient'
+    )
     tags = TagSerializer(many=True, read_only=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_cart = serializers.SerializerMethodField()
@@ -117,3 +134,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         else:
             queryset = Recipe.objects.filter(author__id=obj.id).order_by('id')
         return RecipeMinifieldSerializer(queryset, many=True).data
+
+class FavoriteSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    cooking_time = serializers.IntegerField()
+    image = Base64ImageField(max_length=None, use_url=False,)

@@ -14,10 +14,18 @@ router.register('recipes', RecipesViewSet, basename='recipes')
 
 
 urlpatterns = [
-    path('users/subscriptions/',
+     path('users/subscriptions/',
          SubscriptionViewSet.as_view({'get': 'list'}), name='subscriptions'),
-    path('users/<users_id>/subscribe/',
-         SubscriptionViewSet.as_view({'post': 'create', 'delete': 'delete'},), name='subscribe'),
-    path('', include(router.urls)),
-    path('auth/', include('djoser.urls.authtoken')),
+     path('users/<users_id>/subscribe/',
+         SubscriptionViewSet.as_view({
+          'post': 'create',
+          'delete': 'delete'
+         },), name='subscribe'),
+     path('recipes/<recipes_id>/favorite/',
+          FavoriteViewSet.as_view({
+               'post': 'create',
+               'delete': 'delete'
+          },), name='favorite'),
+     path('', include(router.urls)),
+     path('auth/', include('djoser.urls.authtoken')),
 ]
