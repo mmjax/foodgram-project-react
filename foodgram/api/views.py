@@ -1,3 +1,4 @@
+from functools import partial
 from turtle import st
 from django.shortcuts import get_list_or_404, get_object_or_404
 from djoser.views import UserViewSet
@@ -37,7 +38,38 @@ class IngredientViewSet(ListRetriveViewSet):
 
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return RecipeGetSerializer
+        return RecipePostSerializer
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        serializer = RecipeGetSerializer(
+            instance=serializer.instance,
+            context={'request': self.request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partisl', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        serializer = RecipeGetSerializer(
+            instance=serializer.instance,
+            context={'request': self.request}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class SubscriptionViewSet(viewsets.ModelViewSet):

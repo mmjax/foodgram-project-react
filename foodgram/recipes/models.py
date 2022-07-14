@@ -65,11 +65,12 @@ class Cart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='cart'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='carts',
+        related_name='recipe_in_cart',
     )
 
 class Subscribe(models.Model):
@@ -89,10 +90,12 @@ class IngredientRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
+        related_name='amount'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='ingredient'
     )
     amount = models.IntegerField(
         default=1,
@@ -100,7 +103,7 @@ class IngredientRecipe(models.Model):
     )
 
     def __str__(self):
-        return f'{self.ingredient} {self.recipe} {self.amount}'
+        return f'{self.ingredient} in {self.recipe}, {self.amount}'
 
 
 class TagRecipe(models.Model):
@@ -113,6 +116,8 @@ class TagRecipe(models.Model):
         on_delete=models.CASCADE,
     )
 
+    def __str__(self):
+        return self.recipe.name
 
 class Favorite(models.Model):
     user = models.ForeignKey(
