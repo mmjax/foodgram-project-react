@@ -1,3 +1,4 @@
+from asyncore import read
 from django.contrib.auth.hashers import make_password
 from django.forms import ValidationError
 from djoser.serializers import UserSerializer
@@ -223,7 +224,7 @@ class RecipePostSerializer(serializers.ModelSerializer):
         return instance
 
 
-class RecipeMiniSerializer(serializers.ModelSerializer):
+class ShortRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
@@ -233,9 +234,29 @@ class RecipeMiniSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
+    email = serializers.CharField(
+        source='following.email',
+        read_only=True
+    )
+    id = serializers.IntegerField(
+        source='following.id',
+        read_only=True
+    )
+    username = serializers.CharField(
+        source='following.username',
+        read_only=True
+    )
+    first_name = serializers.CharField(
+        source='following.first_name',
+        read_only=True
+    )
+    last_name = serializers.CharField(
+        source='following.last_name',
+        read_only=True
+    )
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.ReadOnlyField(source='author.recipes.count')
 
     class Meta:
         model = User
@@ -253,21 +274,16 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         if Subscribe.objects.filter(
                 user=request.user, following__id=obj.id).exists():
             return True
-        else:
-            return False
-    
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author__id=obj.id).count()
+        return False
 
     def get_recipes(self, obj):
         request = self.context.get('request')
-        if request.GET.get('recipes_limit'):
-            recipes_limit = int(request.GET.get('recipes_limit'))
-            queryset = Recipe.objects.filter(author__id=obj.id).order_by('id')[
-                :recipes_limit]
-        else:
-            queryset = Recipe.objects.filter(author__id=obj.id).order_by('id')
-        return RecipeMiniSerializer(queryset, many=True).data
+        queryset = Recipe.objects.filter(author=obj.following)
+        recipes_limit = request.query_params.get('recipe_limit')
+        if recipes_limit:
+            queryset = queryset[:int(recipes_limit)]
+        return ShortRecipeSerializer(queryset, many=True).data
+
 
 class FavoriteSerializer(serializers.Serializer):
     id = serializers.IntegerField()

@@ -3,7 +3,7 @@ from turtle import st
 from django.shortcuts import get_list_or_404, get_object_or_404
 from djoser.views import UserViewSet
 from http import HTTPStatus
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.response import Response
 
 from .mixins import ListRetriveViewSet
@@ -26,12 +26,12 @@ class CreateUserViewSet(UserViewSet):
         return User.objects.all()
 
 
-class TagViewSet(ListRetriveViewSet):
+class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
 
 
-class IngredientViewSet(ListRetriveViewSet):
+class IngredientViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientsSerializer
     queryset = Ingredient.objects.all()
 
@@ -72,15 +72,19 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    serializer_class = SubscriptionSerializer
+
+    def get_queryset(self):
+        return self.request.user.follower.all()
+
+
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
 
     def get_subscribtion_serializer(self, *args, **kwargs):
         kwargs.setdefault('context', self.get_serializer_context())
         return SubscriptionSerializer(*args, **kwargs)
-
-    def get_queryset(self):
-        return get_list_or_404(User, following__user=self.request.user)
     
     def create(self, request, *args, **kwargs):
         user = get_object_or_404(User, id=self.kwargs.get('users_id'))
@@ -127,4 +131,8 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             self.model, user__id=user_id, recipe__id=recipe_id)
         object.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    serializer_class = CartSerializer
+    queryset = Cart.objects.all()
