@@ -1,27 +1,40 @@
-from email.mime import base
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import *
-
+from .views import (
+     CreateUserViewSet, SubscriptionListViewSet,
+     TagViewSet, IngredientViewSet, RecipesViewSet, CartViewSet,
+     SubscriptionViewSet, FavoriteViewSet, DownloadCartViewSet,
+)
 
 app_name = 'api'
-router = DefaultRouter()
-router.register('users/subscriptions', SubscriptionListViewSet, basename='subscriptions')
-router.register('users', CreateUserViewSet, basename='users')
-router.register('tags', TagViewSet, basename='tags')
-router.register('ingredients', IngredientViewSet, basename='ingredients')
-router.register('recipes', RecipesViewSet, basename='recipes')
+router_v1 = DefaultRouter()
+router_v1.register(
+     'users/subscriptions', SubscriptionListViewSet, basename='subscriptions'
+     )
+router_v1.register('users', CreateUserViewSet, basename='users')
+router_v1.register('tags', TagViewSet, basename='tags')
+router_v1.register('ingredients', IngredientViewSet, basename='ingredients')
+router_v1.register('recipes', RecipesViewSet, basename='recipes')
+router_v1.register(
+     r'recipes/(?P<recipe_id>\d+)/shopping_cart', CartViewSet,
+     basename='shopping_cart'
+     )
+router_v1.register(
+     r'users/(?P<users_id>\d+)/subscribe', SubscriptionViewSet,
+     basename='subscribe'
+     )
+router_v1.register(
+     r'recipes/(?P<recipe_id>\d+)/favorite', FavoriteViewSet,
+     basename='favorite'
+     )
 
 
 urlpatterns = [
-     path('users/<users_id>/subscribe/',
-         SubscriptionViewSet, name='subscribe'),
-     path('recipes/<recipes_id>/favorite/',
-          FavoriteViewSet.as_view({
-               'post': 'create',
-               'delete': 'delete'
-          },), name='favorite'),
-     path('', include(router.urls)),
+     path(
+          'recipes/download_shopping_cart/',
+          DownloadCartViewSet.as_view({'get': 'download'}),
+          name='download'),
+     path('', include(router_v1.urls)),
      path('auth/', include('djoser.urls.authtoken')),
 ]

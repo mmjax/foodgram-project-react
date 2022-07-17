@@ -5,18 +5,12 @@ from djoser.views import UserViewSet
 from http import HTTPStatus
 from rest_framework import viewsets, status, mixins
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
-from .mixins import ListRetriveViewSet
+from .mixins import CreateDeleteMixins
 from recipes.models import *
 from users.models import User
 from .serializers import *
-
-
-ALREADY_SIGNED = {'errors': 'Вы уже подписаны на этого автора'}
-ALREADY_FAVORITE = {'errors': 'Этот рецепт уже добавлен в избранное'}
-CANT_SUBSCRIBE_TO_YOURSELF = {'errors': 'Вы не можете подписаться на самого себя'}
-WASNT_SIGNED = {'errors': 'Вы не были подписаны на этого атора'}
-WASNT_FAVORITE = {'errors': 'Этот рецепт не был добавлен в избранное'}
 
 
 class CreateUserViewSet(UserViewSet):
@@ -56,7 +50,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             context={'request': self.request}
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partisl', False)
         instance = self.get_object()
@@ -76,63 +70,86 @@ class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
 
     def get_queryset(self):
-        return self.request.user.follower.all()
+        return Subscribe.objects.filter(user=self.request.user)
 
 
-class SubscriptionViewSet(viewsets.ModelViewSet):
+class SubscriptionViewSet(CreateDeleteMixins, mixins.ListModelMixin):
     serializer_class = SubscriptionSerializer
 
-    def get_subscribtion_serializer(self, *args, **kwargs):
-        kwargs.setdefault('context', self.get_serializer_context())
-        return SubscriptionSerializer(*args, **kwargs)
-    
-    def create(self, request, *args, **kwargs):
-        user = get_object_or_404(User, id=self.kwargs.get('users_id'))
-        if Subscribe.objects.filter(user=request.user, following__id=user.id).exists():
-            return Response(ALREADY_SIGNED, status=status.HTTP_400_BAD_REQUEST)
-        if user == request.user:
-            return Response(CANT_SUBSCRIBE_TO_YOURSELF, status=status.HTTP_400_BAD_REQUEST)
-        subscribe = Subscribe.objects.create(
-            user=request.user, following=user
-        )
-        serializer = self.get_subscribtion_serializer(subscribe.following)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    def delete(self, request, *args, **kwargs):
-        if not Subscribe.objects.filter(user=request.user.id, following__id=self.kwargs['users_id']).exists():
-            return Response(WASNT_SIGNED, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        return Subscribe.objects.filter(user=self.request.user)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['following_id'] = self.kwargs.get('users_id')
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            following=get_object_or_404(
+                User, id=self.kwargs.get('users_id')
+            ))
+
+    def delete(self, request, users_id):
         get_object_or_404(
             Subscribe,
-            user__id=request.user.id, following__id=self.kwargs['users_id']
+            user=request.user,
+            following=users_id
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class FavoriteViewSet(viewsets.ModelViewSet):
+class FavoriteViewSet(CreateDeleteMixins):
     serializer_class = FavoriteSerializer
-    queryset = Favorite.objects.all()
-    model = Favorite
 
-    def create(self, request, *args, **kwargs):
-        recipe_id = self.kwargs['recipes_id']
-        if Favorite.objects.filter(user=request.user.id, recipe__id=recipe_id).exists():
-            return Response(ALREADY_FAVORITE, status=status.HTTP_400_BAD_REQUEST)
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        self.model.objects.create(
-            user=request.user, recipe=recipe)
-        return Response(status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        return Favorite.objects.filter(user=self.request.user)
 
-    def delete(self, request, *args, **kwargs):
-        recipe_id = int(self.kwargs['recipes_id'])
-        if not Favorite.objects.filter(user=request.user, recipe__id=recipe_id).exists():
-            return Response(WASNT_FAVORITE, status=status.HTTP_404_NOT_FOUND)
-        user_id = request.user.id
-        object = get_object_or_404(
-            self.model, user__id=user_id, recipe__id=recipe_id)
-        object.delete()
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['recipe_id'] = self.kwargs.get('recipe_id')
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            recipe=get_object_or_404(
+                Recipe, id=self.kwargs.get('recipe_id')
+            ))
+
+    def delete(self, request, recipe_id):
+        get_object_or_404(
+            Favorite,
+            user=self.request.user,
+            recipe=recipe_id
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CartViewSet(viewsets.ModelViewSet):
-    serializer_class = CartSerializer
+class CartViewSet(CreateDeleteMixins):
     queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['recipe_id'] = self.kwargs.get('recipe_id')
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            recipe=get_object_or_404(
+                Recipe, id=self.kwargs.get('recipe_id')
+            ))
+
+    def delete(self, request, recipe_id):
+        get_object_or_404(
+            Cart,
+            user=request.user,
+            recipe_id=recipe_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DownloadCartViewSet(viewsets.ModelViewSet):
+    pass

@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 
 from users.models import User
 
+
 class Ingredient(models.Model):
     name = models.CharField(
         max_length=200,
@@ -18,6 +19,7 @@ class Ingredient(models.Model):
             f'measurement unit: {self.measurement_unit}'
         )
 
+
 class Tag(models.Model):
     name = models.CharField(
         max_length=200,
@@ -29,6 +31,7 @@ class Tag(models.Model):
         max_length=200,
         unique=True,
     )
+
 
 class Recipe(models.Model):
     author = models.ForeignKey(
@@ -72,6 +75,7 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         related_name='recipe_in_cart',
     )
+
 
 class Subscribe(models.Model):
     user = models.ForeignKey(
@@ -119,6 +123,7 @@ class TagRecipe(models.Model):
     def __str__(self):
         return self.recipe.name
 
+
 class Favorite(models.Model):
     user = models.ForeignKey(
         User,
@@ -127,4 +132,5 @@ class Favorite(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='recipe'
     )
