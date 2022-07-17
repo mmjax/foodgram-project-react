@@ -1,11 +1,7 @@
-from functools import partial
-from turtle import st
-from django.shortcuts import get_list_or_404, get_object_or_404
+from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
-from http import HTTPStatus
 from rest_framework import viewsets, status, mixins
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
 from .mixins import CreateDeleteMixins
 from recipes.models import *
@@ -14,7 +10,10 @@ from .serializers import *
 
 
 class CreateUserViewSet(UserViewSet):
-    serializer_class = RegistrationSerializer
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CustomUserSerializer
+        return RegistrationSerializer
 
     def get_queryset(self):
         return User.objects.all()
@@ -32,12 +31,12 @@ class IngredientViewSet(viewsets.ModelViewSet):
 
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return RecipeGetSerializer
         return RecipePostSerializer
-    
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
@@ -75,9 +74,6 @@ class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 class SubscriptionViewSet(CreateDeleteMixins, mixins.ListModelMixin):
     serializer_class = SubscriptionSerializer
-
-    def get_queryset(self):
-        return Subscribe.objects.filter(user=self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

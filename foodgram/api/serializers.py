@@ -1,4 +1,3 @@
-from asyncore import read
 from django.contrib.auth.hashers import make_password
 from django.forms import ValidationError
 from djoser.serializers import UserSerializer
@@ -40,8 +39,9 @@ class CustomUserSerializer(UserSerializer):
         request = self.context.get('request')
         if request.user.is_anonymous:
             return False
-        return(Subscribe.objects.filter(
-                user=request.user, following__id=obj.id).exists())
+        return Subscribe.objects.filter(
+                user=request.user, following=obj.id
+        ).exists()
 
 
 class RegistrationSerializer(UserSerializer):
@@ -184,24 +184,29 @@ class RecipePostSerializer(serializers.ModelSerializer):
             raise ValidationError(REPEAT_INGREDIENTS)
         return attrs
 
-    def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                ingredient=get_object_or_404(Ingredient, id=ingredient.get('id')),
-                amount=ingredient.get('amount'),
-                recipe=recipe
-            )
-
+    def create_tag(self, tags, recipe):
         for tag in tags:
             TagRecipe.objects.create(
                 tag=get_object_or_404(Tag, id=tag.id),
                 recipe=recipe
             )
 
+    def create_ingredient(self, ingredients, recipe):
+        for ingredient in ingredients:
+            IngredientRecipe.objects.create(
+                ingredient=get_object_or_404(
+                    Ingredient, id=ingredient.get('id')
+                    ),
+                amount=ingredient.get('amount'),
+                recipe=recipe
+            )
+
+    def create(self, validated_data):
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        recipe = Recipe.objects.create(**validated_data)
+        self.create_tag(tags, recipe)
+        self.create_ingredient(ingredients, recipe)
         return recipe
 
     def update(self, instance, validated_data):
@@ -213,21 +218,10 @@ class RecipePostSerializer(serializers.ModelSerializer):
         instance.cooking_time = validated_data.get(
             'cooking_time', instance.cooking_time
         )
-
         IngredientRecipe.objects.filter(recipe=instance).delete()
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                ingredient=get_object_or_404(Ingredient, id=ingredient.get('id')),
-                amount=ingredient.get('amount'),
-                recipe=instance
-            )
-
+        self.create_ingredient(ingredients, instance)
         TagRecipe.objects.filter(recipe=instance).delete()
-        for tag in tags:
-            TagRecipe.objects.create(
-                tag=get_object_or_404(Tag, id=tag.id),
-                recipe=instance
-            )
+        self.create_tag(tags, instance)
         return instance
 
 
@@ -263,7 +257,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     )
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.ReadOnlyField(source='author.recipes.count')
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscribe
@@ -283,13 +277,16 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             raise ValidationError(ALREADY_SIGNED)
         return attrs
 
+    def get_recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj.following).count()
+
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if Subscribe.objects.filter(
-            user=request.user, following=obj.following
-        ).exists():
-            return True
-        return False
+        if request.user.is_anonymous:
+            return False
+        return Subscribe.objects.filter(
+                user=request.user, following=obj.following
+        ).exists()
 
     def get_recipes(self, obj):
         request = self.context.get('request')
