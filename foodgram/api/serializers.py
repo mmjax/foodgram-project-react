@@ -143,16 +143,18 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
+        user = request.user
         if request is None or request.user.is_anonymous:
             return False
-        user = request.user
         return Cart.objects.filter(recipe=obj, user=user).exists()
 
 
 class RecipePostSerializer(serializers.ModelSerializer):
     ingredients = IngredientInRecipePostSerializer(many=True)
     tags = serializers.ListField(
-        child=serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all())
+        child=serializers.SlugRelatedField(
+            slug_field='id', queryset=Tag.objects.all()
+            )
     )
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     image = Base64ImageField()
@@ -160,11 +162,6 @@ class RecipePostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = '__all__'
-        required_fields = (
-            'ingredients', 'tags',
-            'image', 'name',
-            'text', 'cooking_time',
-        )
 
     def validate(self, attrs):
         if len(attrs['ingredients']) == 0:
@@ -210,8 +207,6 @@ class RecipePostSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
         instance.image = validated_data.get('image', instance.image)
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
@@ -219,9 +214,9 @@ class RecipePostSerializer(serializers.ModelSerializer):
             'cooking_time', instance.cooking_time
         )
         IngredientRecipe.objects.filter(recipe=instance).delete()
-        self.create_ingredient(ingredients, instance)
         TagRecipe.objects.filter(recipe=instance).delete()
-        self.create_tag(tags, instance)
+        self.create_ingredient(validated_data.pop('ingredients'), instance)
+        self.create_tag(validated_data.pop('tags'), instance)
         return instance
 
 
@@ -269,7 +264,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        user = User.objects.get(id=self.context['request'].user.id)
+        user = get_object_or_404(User, id=self.context['request'].user.id)
         following = get_object_or_404(User, id=self.context['following_id'])
         if user == following:
             raise ValidationError(CANT_SUBSCRIBE_TO_YOURSELF)
@@ -324,9 +319,10 @@ class FavoriteSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        user = User.objects.get(id=self.context['request'].user.id)
-        recipe = Recipe.objects.get(id=self.context['recipe_id'])
-        if Favorite.objects.filter(user=user, recipe=recipe):
+        if Favorite.objects.filter(
+            user=get_object_or_404(User, id=self.context['request'].user.id),
+            recipe=get_object_or_404(Recipe, id=self.context['recipe_id'])
+        ):
             raise ValidationError(ALREADY_FAVORITE)
         return attrs
 
@@ -357,11 +353,11 @@ class CartSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        user = User.objects.get(id=self.context['request'].user.id)
-        recipe = Recipe.objects.get(id=self.context['recipe_id'])
         if Cart.objects.filter(
-                user=user,
-                recipe=recipe
+                user=get_object_or_404(
+                    User, id=self.context['request'].user.id
+                ),
+                recipe=get_object_or_404(Recipe, id=self.context['recipe_id'])
         ).exists():
             raise serializers.ValidationError(ALLREADY_IN_CART)
         return attrs

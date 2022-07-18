@@ -33,7 +33,7 @@ router_v1.register(
 urlpatterns = [
      path(
           'recipes/download_shopping_cart/',
-          DownloadCartViewSet.as_view({'get': 'download'}),
+          DownloadCartViewSet.as_view({'get': 'download_shopping_cart'}),
           name='download'),
      path('', include(router_v1.urls)),
      path('auth/', include('djoser.urls.authtoken')),

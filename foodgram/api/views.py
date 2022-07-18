@@ -1,12 +1,23 @@
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
+from reportlab.lib.pagesizes import A4
 from rest_framework import viewsets, status, mixins
 from rest_framework.response import Response
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 
 from .mixins import CreateDeleteMixins
-from recipes.models import *
+from recipes.models import (Cart, Favorite, Ingredient,
+                            Recipe, Subscribe, Tag, IngredientRecipe)
 from users.models import User
-from .serializers import *
+from .serializers import (CustomUserSerializer, RegistrationSerializer,
+                          TagSerializer, IngredientsSerializer,
+                          RecipeGetSerializer, RecipePostSerializer,
+                          SubscriptionSerializer, FavoriteSerializer,
+                          CartSerializer)
 
 
 class CreateUserViewSet(UserViewSet):
@@ -19,12 +30,12 @@ class CreateUserViewSet(UserViewSet):
         return User.objects.all()
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(ReadOnlyModelViewSet):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
 
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientsSerializer
     queryset = Ingredient.objects.all()
 
@@ -51,7 +62,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partisl', False)
+        partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(
             instance, data=request.data, partial=partial
@@ -77,7 +88,7 @@ class SubscriptionViewSet(CreateDeleteMixins, mixins.ListModelMixin):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['following_id'] = self.kwargs.get('users_id')
+        context.update({'following_id': self.kwargs.get('users_id')})
         return context
 
     def perform_create(self, serializer):
@@ -104,7 +115,7 @@ class FavoriteViewSet(CreateDeleteMixins):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['recipe_id'] = self.kwargs.get('recipe_id')
+        context.update({'recipe_id': self.kwargs.get('recipe_id')})
         return context
 
     def perform_create(self, serializer):
@@ -129,7 +140,7 @@ class CartViewSet(CreateDeleteMixins):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['recipe_id'] = self.kwargs.get('recipe_id')
+        context.update({'recipe_id': self.kwargs.get('recipe_id')})
         return context
 
     def perform_create(self, serializer):
@@ -148,4 +159,39 @@ class CartViewSet(CreateDeleteMixins):
 
 
 class DownloadCartViewSet(viewsets.ModelViewSet):
-    pass
+    def download_shopping_cart(self, request):
+        final_list = {}
+        ingredients = IngredientRecipe.objects.filter(
+            recipe__author=request.user).values_list(
+            'ingredient__name', 'ingredient__measurement_unit',
+            'amount')
+        for item in ingredients:
+            name = item[0]
+            if name not in final_list:
+                final_list[name] = {
+                    'measurement_unit': item[1],
+                    'amount': item[2]
+                }
+            else:
+                final_list[name]['amount'] += item[2]
+        pdfmetrics.registerFont(
+            TTFont('KawashiroGothic', 'data/KawashiroGothic.ttf', 'UTF-8'))
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = (
+            'attachment; ''filename="shopping_cart.pdf"'
+            )
+        page = canvas.Canvas(response, pagesize=A4)
+        page.setFont('KawashiroGothic', size=18)
+        page.drawString(250, 800, 'Корзина')
+        page.setFont('KawashiroGothic', size=14)
+        height = 770
+        for i, (name, data) in enumerate(final_list.items(), start=1):
+            if height > 20:
+                page.drawString(70, height, (
+                    f'{i}. {name} - {data["amount"]},'
+                    f'{data["measurement_unit"]}'
+                    ))
+                height -= 20
+        page.showPage()
+        page.save()
+        return response
