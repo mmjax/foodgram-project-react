@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
@@ -11,7 +12,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from .filters import RecipeFilter
-from .mixins import CreateDeleteMixins
+from .mixins import CreateDeleteMixins, CartFavorite
 from .permissions import AuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer, RegistrationSerializer,
                           TagSerializer, IngredientsSerializer,
@@ -57,32 +58,26 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return RecipeGetSerializer
         return RecipePostSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+    def create_method(self):
+        data = {
+            'user': self.request.user.id,
+            'recipe': self.request.recipe.id
+            }
         serializer = RecipeGetSerializer(
-            instance=serializer.instance,
+            data=data,
             context={'request': self.request}
-        )
+            )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(
-            instance, data=request.data, partial=partial
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        serializer = RecipeGetSerializer(
-            instance=serializer.instance,
-            context={'request': self.request}
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def delete_method(self):
+        user = self.request.user
+        recipe = get_object_or_404(Recipe, id=self.request.recipe.id)
+        get_object_or_404(
+            Recipe, user=user, recipe=recipe
+            ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -116,48 +111,24 @@ class SubscriptionViewSet(CreateDeleteMixins, mixins.ListModelMixin):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class FavoriteViewSet(CreateDeleteMixins):
+class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
     serializer_class = FavoriteSerializer
 
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user)
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({'recipe_id': self.kwargs.get('recipe_id')})
-        return context
-
-    def perform_create(self, serializer):
-        serializer.save(
-            user=self.request.user,
-            recipe=get_object_or_404(
-                Recipe, id=self.kwargs.get('recipe_id')
-            ))
 
     def delete(self, request, recipe_id):
         get_object_or_404(
             Favorite,
             user=self.request.user,
             recipe=recipe_id
-        )
+        ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CartViewSet(CreateDeleteMixins):
+class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({'recipe_id': self.kwargs.get('recipe_id')})
-        return context
-
-    def perform_create(self, serializer):
-        serializer.save(
-            user=self.request.user,
-            recipe=get_object_or_404(
-                Recipe, id=self.kwargs.get('recipe_id')
-            ))
 
     def delete(self, request, recipe_id):
         get_object_or_404(
@@ -169,20 +140,24 @@ class CartViewSet(CreateDeleteMixins):
 
 class DownloadCartViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
-        ingredients = IngredientRecipe.objects.filter(
-            recipe__author=request.user).values_list(
-            'ingredient__name', 'ingredient__measurement_unit',
-            'amount')
-        shopping_list = {}
+        ingredients = (
+            IngredientRecipe.objects.filter(
+                recipe__recipe_in_cart__user=request.user
+                ).values('ingredient__id').
+            annotate(quantity=Sum('amount')).
+            values_list(
+                'ingredient__name', 'ingredient__measurement_unit',
+                'quantity'
+            )
+        )
+        shopping_cart = {}
         for item in ingredients:
             name = item[0]
-            if name not in shopping_list:
-                shopping_list[name] = {
+            if name not in shopping_cart:
+                shopping_cart[name] = {
                     'measurement_unit': item[1],
-                    'amount': item[2]
+                    'quantity': item[2]
                 }
-            else:
-                shopping_list[name]['amount'] += item[2]
         pdfmetrics.registerFont(
             TTFont('KawashiroGothic', 'data/KawashiroGothic.ttf', 'UTF-8'))
         response = HttpResponse(content_type='application/pdf')
@@ -194,10 +169,10 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
         page.drawString(250, 800, 'Корзина')
         page.setFont('KawashiroGothic', size=14)
         height = 770
-        for i, (name, data) in enumerate(shopping_list.items(), start=1):
+        for i, (name, data) in enumerate(shopping_cart.items(), start=1):
             if height > 20:
                 page.drawString(70, height, (
-                    f'{i}. {name} - {data["amount"]} '
+                    f'{i}. {name} - {data["quantity"]} '
                     f'{data["measurement_unit"]}'
                     ))
                 height -= 20

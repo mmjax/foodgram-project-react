@@ -181,21 +181,29 @@ class RecipePostSerializer(serializers.ModelSerializer):
         return attrs
 
     def create_tag(self, tags, recipe):
-        for tag in tags:
-            TagRecipe.objects.create(
-                tag=get_object_or_404(Tag, id=tag.id),
-                recipe=recipe
-            )
+        TagRecipe.objects.bulk_create(
+            [
+                TagRecipe(
+                    tag=get_object_or_404(Tag, id=tag.id),
+                    recipe=recipe
+                )
+                for tag in tags
+            ]
+        )
 
     def create_ingredient(self, ingredients, recipe):
-        for ingredient in ingredients:
-            IngredientRecipe.objects.create(
-                ingredient=get_object_or_404(
-                    Ingredient, id=ingredient.get('id')
+        IngredientRecipe.objects.bulk_create(
+            [
+                IngredientRecipe(
+                    ingredient=get_object_or_404(
+                        Ingredient, id=ingredient.get('id')
                     ),
-                amount=ingredient.get('amount'),
-                recipe=recipe
-            )
+                    amount=ingredient.get('amount'),
+                    recipe=recipe
+                )
+                for ingredient in ingredients
+            ]
+        )
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
@@ -206,17 +214,15 @@ class RecipePostSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance.image = validated_data.get('image', instance.image)
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time', instance.cooking_time
-        )
         IngredientRecipe.objects.filter(recipe=instance).delete()
         TagRecipe.objects.filter(recipe=instance).delete()
         self.create_ingredient(validated_data.pop('ingredients'), instance)
         self.create_tag(validated_data.pop('tags'), instance)
-        return instance
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        context = {'request': self.context.get('request')}
+        return RecipeGetSerializer(instance, context=context).data
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
