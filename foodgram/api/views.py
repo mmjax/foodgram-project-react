@@ -58,27 +58,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return RecipeGetSerializer
         return RecipePostSerializer
 
-    def create_method(self):
-        data = {
-            'user': self.request.user.id,
-            'recipe': self.request.recipe.id
-            }
-        serializer = RecipeGetSerializer(
-            data=data,
-            context={'request': self.request}
-            )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def delete_method(self):
-        user = self.request.user
-        recipe = get_object_or_404(Recipe, id=self.request.recipe.id)
-        get_object_or_404(
-            Recipe, user=user, recipe=recipe
-            ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
@@ -117,25 +96,10 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user)
 
-    def delete(self, request, recipe_id):
-        get_object_or_404(
-            Favorite,
-            user=self.request.user,
-            recipe=recipe_id
-        ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
-
-    def delete(self, request, recipe_id):
-        get_object_or_404(
-            Cart,
-            user=request.user,
-            recipe_id=recipe_id).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DownloadCartViewSet(viewsets.ModelViewSet):

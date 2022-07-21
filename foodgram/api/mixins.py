@@ -1,7 +1,10 @@
+from rest_framework import status
 from rest_framework.mixins import CreateModelMixin, DestroyModelMixin
+from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from django.shortcuts import get_object_or_404
-from recipes.models import Recipe
+from .serializers import FavoriteSerializer
+from recipes.models import Recipe, Cart, Favorite
 
 
 class CreateDeleteMixins(CreateModelMixin, DestroyModelMixin, GenericViewSet):
@@ -21,3 +24,14 @@ class CartFavorite:
                 Recipe, id=self.kwargs.get('recipe_id')
             )
         )
+
+    def delete(self, request, recipe_id, serializer):
+        if serializer == FavoriteSerializer:
+            model = Favorite
+        else:
+            model = Cart
+        get_object_or_404(
+            model,
+            user=request.user,
+            recipe_id=recipe_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
