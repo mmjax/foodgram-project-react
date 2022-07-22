@@ -92,6 +92,7 @@ class SubscriptionViewSet(CreateDeleteMixins, mixins.ListModelMixin):
 
 class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
     serializer_class = FavoriteSerializer
+    model = Favorite
 
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user)
@@ -100,6 +101,7 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
 class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
+    model = Cart
 
 
 class DownloadCartViewSet(viewsets.ModelViewSet):
