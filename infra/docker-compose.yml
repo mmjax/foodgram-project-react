@@ -8,7 +8,9 @@ services:
       - ../.env
 
   web:
-    image: mmjax/foodgram:latest
+    build:
+      context: ../foodgram
+      dockerfile: Dockerfile
     restart: always
     volumes:
       - static_value:/app/static/
@@ -21,7 +23,7 @@ services:
 
   frontend:
     build:
-      context: mmjax/frontend:latest
+      context: ../frontend
       dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/

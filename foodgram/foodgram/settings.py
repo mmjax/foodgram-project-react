@@ -7,7 +7,7 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', default='127.0.0.1').split()
+ALLOWED_HOSTS = ['127.0.0.1']
 
 SECRET_KEY = os.getenv('SECRET_KEY', default=get_random_secret_key())
 

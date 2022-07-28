@@ -3,7 +3,8 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.serializers import SetPasswordSerializer
 from djoser.views import UserViewSet
-from rest_framework import viewsets, status, mixins, filters
+from rest_framework import viewsets, status, mixins
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from reportlab.lib.pagesizes import A4
@@ -11,7 +12,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientSearchFilter
 from .mixins import CreateDeleteMixins, CartFavorite
 from .permissions import AuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer, RegistrationSerializer,
@@ -38,13 +39,17 @@ class CreateUserViewSet(UserViewSet):
 
 class TagViewSet(ReadOnlyModelViewSet):
     serializer_class = TagSerializer
+    pagination_class = None
+    permission_classes = [AllowAny]
     queryset = Tag.objects.all()
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientsSerializer
     queryset = Ingredient.objects.all()
-    filter_backends = (filters.SearchFilter,)
+    pagination_class = None
+    permission_classes = [AllowAny]
+    filter_backends = IngredientSearchFilter
     search_fields = ('^name',)
 
 

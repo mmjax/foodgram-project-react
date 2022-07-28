@@ -44,6 +44,13 @@ class Tag(models.Model):
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
 
+    def __str__(self):
+        return(
+            f'name: {self.name}, '
+            f'slug: {self.slug}, '
+            f'color in HEX: {self.color}'
+        )
+
 
 class Recipe(models.Model):
     author = models.ForeignKey(

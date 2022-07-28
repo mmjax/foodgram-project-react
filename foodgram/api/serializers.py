@@ -56,10 +56,13 @@ class RegistrationSerializer(UserSerializer):
             'password': {'write_only': True, 'required': True},
         }
 
-    def is_subscribed(self, obj):
-        return (
-            self.context['request'].user.is_authenticated and obj.is_subscribed
-        )
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request.user.is_anonymous:
+            return False
+        return Subscribe.objects.filter(
+            user=request.user, following=obj.id
+        ).exists()
 
     def create(self, validated_data):
         validated_data['password'] = (
@@ -299,20 +302,20 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 class FavoriteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(
-        source='recipe.id',
+        source='favorite_recipe.id',
         read_only=True
     )
     name = serializers.CharField(
-        source='recipe.name',
+        source='favorite_recipe.name',
         read_only=True
     )
     cooking_time = serializers.IntegerField(
-        source='recipe.cooking_time',
+        source='favorite_recipe.cooking_time',
         read_only=True
 
     )
     image = serializers.CharField(
-        source='recipe.image',
+        source='favorite_recipe.image',
         read_only=True
     )
 
