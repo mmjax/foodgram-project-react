@@ -24,7 +24,7 @@ jobs:
     - name: Test with flake8
       run: |
         python -m flake8
-   build_and_push_to_docker_hub:
+  build_and_push_to_docker_hub:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
@@ -42,6 +42,45 @@ jobs:
       - name: Push to Docker Hub
         uses: docker/build-push-action@v2 
         with:
-          context: foodrgam/
+          context: foodgram/
           push: true
-          tags: mmjax/foodrgam:latest
+          tags: mmjax/foodgram:latest
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_push_to_docker_hub
+    steps:
+      - name: Executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            rm .env
+            touch .env
+            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
+            echo DB_NAME=${{ secrets.DB_NAME }} >> .env
+            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
+            echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
+            echo DEBUG=${{ secrets.DEBUG }} >> .env
+            sudo docker pull mmjax/foodgram:latest
+            sudo docker-compose stop
+            sudo docker-compose rm web
+            sudo docker-compose up -d
+            sudo docker-compose exec web python manage.py makemigrations
+            sudo docker-compose exec web python manage.py migrate
+            sudo docker-compose exec web python manage.py collectstatic --no-input
+  send_message:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+    - name: send message
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_TO }}
+        token: ${{ secrets.TELEGRAM_TOKEN }}
+        message: ${{ github.workflow }} успешно выполнен! 
