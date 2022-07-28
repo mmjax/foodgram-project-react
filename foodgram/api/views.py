@@ -109,7 +109,7 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
         ingredients = (
             IngredientRecipe.objects.filter(
                 recipe__recipe_in_cart__user=request.user
-                ).values('ingredient__id').
+            ).values('ingredient__id').
             annotate(quantity=Sum('amount')).
             values_list(
                 'ingredient__name', 'ingredient__measurement_unit',
@@ -129,7 +129,7 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             'attachment; ''filename="shopping_cart.pdf"'
-            )
+        )
         page = canvas.Canvas(response, pagesize=A4)
         page.setFont('KawashiroGothic', size=18)
         page.drawString(250, 800, 'Корзина')
@@ -140,9 +140,9 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
                 page.drawString(70, height, (
                     f'{i}. {name} - {data["quantity"]} '
                     f'{data["measurement_unit"]}'
-                    ))
+                ))
                 height -= 20
-        page.drawString(0, height-10, 200*'_')
+        page.drawString(0, height - 10, 200 * '_')
         page.showPage()
         page.save()
         return response

@@ -5,11 +5,9 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import SerializerMethodField
-
 from recipes.models import (Cart, Favorite, Ingredient, IngredientRecipe,
                             Recipe, Subscribe, Tag, TagRecipe)
 from users.models import User
-
 
 NO_INGREDIENTS = 'Должен быть хотя бы один ингридиент'
 REPEAT_TAG = 'Не может быть одинаковых тегов'
@@ -39,7 +37,7 @@ class CustomUserSerializer(UserSerializer):
         if request.user.is_anonymous:
             return False
         return Subscribe.objects.filter(
-                user=request.user, following=obj.id
+            user=request.user, following=obj.id
         ).exists()
 
 
@@ -153,9 +151,11 @@ class RecipePostSerializer(serializers.ModelSerializer):
     tags = serializers.ListField(
         child=serializers.SlugRelatedField(
             slug_field='id', queryset=Tag.objects.all()
-            )
+        )
     )
-    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    author = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
     image = Base64ImageField()
 
     class Meta:
@@ -285,7 +285,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         if request.user.is_anonymous:
             return False
         return Subscribe.objects.filter(
-                user=request.user, following=obj.following
+            user=request.user, following=obj.following
         ).exists()
 
     def get_recipes(self, obj):
