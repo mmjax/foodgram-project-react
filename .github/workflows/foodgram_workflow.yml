@@ -44,4 +44,4 @@ jobs:
         with:
           push: true
           tags: mmjax/foodrgam:latest
-          context: foodrgam/
+          context: foodrgam
