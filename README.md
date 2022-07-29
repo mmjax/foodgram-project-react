@@ -44,7 +44,7 @@ docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py collectstatic --no-input  
 docker-compose exec web python manage.py createsuperuser
 ```
-5)Заполнить базу данных списком ингредиентов:
+5) Заполнить базу данных списком ингредиентов:
 docker-compose exec web python manage.py uploadDB ingredients.csv
 
 ## Ссылка
