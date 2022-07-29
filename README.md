@@ -1,3 +1,5 @@
+![status badge](https://github.com/mmjax/foodgram-project-react/actions/workflows/main.yml/badge.svg)
+
 # Описание проекта FOODGRAM
 На этом сервисе пользователи могут публиковать рецепты, подписываться на публикации других пользователей, добавлять понравившиеся рецепты в список «Избранное», а перед походом в магазин скачивать сводный список продуктов, необходимых для приготовления одного или нескольких выбранных блюд.
 ## Сервисы и страницы проекта
@@ -15,5 +17,38 @@
 Работа со списком покупок доступна авторизованным пользователям. Список покупок может просматривать только его владелец.
 ### Фильтрация по тегам
 При нажатии на название тега выводится список рецептов, отмеченных этим тегом. Фильтрация может проводится по нескольким тегам в комбинации «или»: если выбраны несколько тегов — в результате должны быть показаны рецепты, которые отмечены хотя бы одним из этих тегов.
+## Запуск и работа с проектом
+1) Клонировать репозиторий c Git
+```python
+git clone https://github.com/mmjax/foodgram-project-react.git
+```
+2) Создать файл ```.env``` в папке проекта _infra_ c ключами:
+```python
+SECRET_KEY= <django секретный ключ>
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
+```
+3) Собрать контейнеры
+```python
+cd infra
+docker-compose up -d
+```
+4) Выполнить миграцию, собрать статику создать пользователя:
+```python
+docker-compose exec web python manage.py makemigrations users
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py collectstatic --no-input  
+docker-compose exec web python manage.py createsuperuser
+```
+5)Заполнить базу данных списком ингредиентов:
+docker-compose exec web python manage.py uploadDB ingredients.csv
+
+## Ссылка
+http://51.250.18.96/
+
 ## Автор
 Скалозубов Максим
