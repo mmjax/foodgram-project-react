@@ -5,12 +5,10 @@ services:
     volumes:
       - /var/lib/postgresql/data/
     env_file:
-      - ../.env
+      - ./.env
 
   web:
-    build:
-      context: ../foodgram
-      dockerfile: Dockerfile
+    image: mmjax/foodgram:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -18,13 +16,11 @@ services:
     depends_on:
       - db
     env_file:
-      - ../.env
+      - ./.env
 
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: mmjax/frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
 
