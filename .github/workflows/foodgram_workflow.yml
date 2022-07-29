@@ -58,7 +58,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             sudo docker pull mmjax/foodgram:latest
-            sudo docker-compose down -v
+            sudo docker-compose down -v 
             rm .env
             touch .env
             echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
