@@ -45,7 +45,9 @@ docker-compose exec web python manage.py collectstatic --no-input
 docker-compose exec web python manage.py createsuperuser
 ```
 5) Заполнить базу данных списком ингредиентов:
+```python
 docker-compose exec web python manage.py uploadDB ingredients.csv
+```
 
 ## Ссылка
 http://51.250.18.96/
