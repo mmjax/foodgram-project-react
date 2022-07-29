@@ -58,8 +58,9 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             sudo docker pull mmjax/foodgram:latest
-            sudo docker-compose s
+            sudo docker-compose stop
             sudo docker-compose rm web
+            yes
   send_message:
     runs-on: ubuntu-latest
     needs: deploy
