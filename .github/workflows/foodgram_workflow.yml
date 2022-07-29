@@ -59,8 +59,7 @@ jobs:
           script: |
             sudo docker pull mmjax/foodgram:latest
             sudo docker-compose stop
-            sudo docker-compose rm web
-            yes
+            sudo docker-compose rm web   
   send_message:
     runs-on: ubuntu-latest
     needs: deploy
