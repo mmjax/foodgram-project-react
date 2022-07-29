@@ -20,7 +20,7 @@ services:
 
 
   frontend:
-    image: mmjax/frontend:latest
+    image: mmjax/frontend:v1.28.07
     volumes:
       - ../frontend/:/app/result_build/
 
