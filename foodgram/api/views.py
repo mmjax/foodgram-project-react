@@ -107,12 +107,9 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
 
 
 class CartViewSet(CartFavorite, CreateDeleteMixins):
+    queryset = Cart.objects.all()
     serializer_class = CartSerializer
-    pagination_class = RecipesFollowsPagination
     model = Cart
-
-    def get_queryset(self):
-        return Cart.objects.filter(user=self.request.user)
 
 
 class DownloadCartViewSet(viewsets.ModelViewSet):
