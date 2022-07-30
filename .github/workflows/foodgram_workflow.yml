@@ -58,7 +58,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             sudo docker pull mmjax/foodgram:latest
-            sudo docker-compose down
+            sudo docker-compose stop
             sudo docker-compose rm web
             rm .env
             touch .env
