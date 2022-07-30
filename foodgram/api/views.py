@@ -14,7 +14,7 @@ from reportlab.pdfgen import canvas
 
 from .filters import RecipeFilter, IngredientSearchFilter
 from .mixins import CreateDeleteMixins, CartFavorite
-from .pagination import RecipesFollowsPagination
+from .pagination import RecipesSubscriptionsPagination
 from .permissions import AuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer, RegistrationSerializer,
                           TagSerializer, IngredientsSerializer,
@@ -57,6 +57,7 @@ class IngredientViewSet(ReadOnlyModelViewSet):
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     filterset_class = RecipeFilter
+    pagination_class = None
     permission_classes = [AuthorAdminOrReadOnly]
 
     def get_serializer_class(self):
@@ -67,7 +68,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
 class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
-    pagination_class = RecipesFollowsPagination
+    pagination_class = RecipesSubscriptionsPagination
 
     def get_queryset(self):
         return Subscribe.objects.filter(user=self.request.user)
