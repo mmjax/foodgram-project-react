@@ -1,4 +1,4 @@
-![example workflow](https://github.com/mmjax/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)(https://github.com/mmjax/foodgram-project-react/actions)
+![example workflow](https://github.com/mmjax/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg) (https://github.com/mmjax/foodgram-project-react/actions)
 
 # Описание проекта FOODGRAM
 На этом сервисе пользователи могут публиковать рецепты, подписываться на публикации других пользователей, добавлять понравившиеся рецепты в список «Избранное», а перед походом в магазин скачивать сводный список продуктов, необходимых для приготовления одного или нескольких выбранных блюд.
