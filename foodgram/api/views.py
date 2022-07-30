@@ -40,14 +40,12 @@ class CreateUserViewSet(UserViewSet):
 
 class TagViewSet(ReadOnlyModelViewSet):
     serializer_class = TagSerializer
-    pagination_class = None
     permission_classes = [AllowAny]
     queryset = Tag.objects.all()
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientsSerializer
-    pagination_class = None
     permission_classes = [AllowAny]
     queryset = Ingredient.objects.all()
     filter_backends = (IngredientSearchFilter,)
@@ -68,7 +66,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
 class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
-    pagination_class = None
+    pagination_class = RecipesSubscriptionsPagination
 
     def get_queryset(self):
         return Subscribe.objects.filter(user=self.request.user)
@@ -109,7 +107,6 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
 class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
-    pagination_class = None
     model = Cart
 
 
@@ -141,7 +138,7 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
         )
         page = canvas.Canvas(response, pagesize=A4)
         page.setFont('KawashiroGothic', size=18)
-        page.drawString(250, 800, 'Корзинамоя')
+        page.drawString(250, 800, 'Корзина')
         page.setFont('KawashiroGothic', size=14)
         height = 770
         for i, (name, data) in enumerate(shopping_cart.items(), start=1):
