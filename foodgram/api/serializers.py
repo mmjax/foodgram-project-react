@@ -261,7 +261,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     )
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.ReadOnlyField(source='author.recipes.count')
 
     class Meta:
         model = Subscribe
@@ -280,9 +280,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         if Subscribe.objects.filter(user=user, following=following).exists():
             raise ValidationError(ALREADY_SIGNED)
         return attrs
-
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj.following).count()
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
