@@ -57,7 +57,6 @@ class IngredientViewSet(ReadOnlyModelViewSet):
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     filterset_class = RecipeFilter
-    pagination_class = RecipesFollowsPagination
     permission_classes = [AuthorAdminOrReadOnly]
 
     def get_serializer_class(self):
@@ -109,7 +108,6 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
 class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
-    pagination_class = None
     model = Cart
 
 
