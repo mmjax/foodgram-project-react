@@ -109,6 +109,7 @@ class FavoriteViewSet(CartFavorite, CreateDeleteMixins):
 class CartViewSet(CartFavorite, CreateDeleteMixins):
     queryset = Cart.objects.all()
     serializer_class = CartSerializer
+    pagination_class = None
     model = Cart
 
 
