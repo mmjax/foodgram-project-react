@@ -141,7 +141,7 @@ class DownloadCartViewSet(viewsets.ModelViewSet):
         )
         page = canvas.Canvas(response, pagesize=A4)
         page.setFont('KawashiroGothic', size=18)
-        page.drawString(250, 800, 'Корзинаffff')
+        page.drawString(250, 800, 'Корзинамоя')
         page.setFont('KawashiroGothic', size=14)
         height = 770
         for i, (name, data) in enumerate(shopping_cart.items(), start=1):
